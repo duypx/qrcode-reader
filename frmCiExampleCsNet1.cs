@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Timers;
 using System.Windows.Forms;
@@ -64,6 +65,22 @@ namespace Main
             //
             // TODO: Add any constructor code after InitializeComponent call
             //
+
+            //Read from a file
+            imagePath = File.ReadAllText(inputFileName);
+            textBox1.Text = imagePath;
+            if (imagePath != "")
+            {
+                string img = getFileInDir(imagePath);
+                if (img != "")
+                {
+                    getBarCode(img);
+                }
+            }
+
+            CreateTimer();
+            //getCameraDevice();
+            //InitICube();
         }
 
         protected override void Dispose(bool disposing)
@@ -517,6 +534,7 @@ namespace Main
             this.pictureBox2.Location = new System.Drawing.Point(15, 365);
             this.pictureBox2.Name = "pictureBox2";
             this.pictureBox2.Size = new System.Drawing.Size(616, 258);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox2.TabIndex = 60;
             this.pictureBox2.TabStop = false;
             // 
@@ -542,6 +560,7 @@ namespace Main
             this.textBox2.Location = new System.Drawing.Point(641, 365);
             this.textBox2.Multiline = true;
             this.textBox2.Name = "textBox2";
+            this.textBox2.ScrollBars = System.Windows.Forms.ScrollBars.Both;
             this.textBox2.Size = new System.Drawing.Size(184, 258);
             this.textBox2.TabIndex = 63;
             // 
@@ -1163,8 +1182,11 @@ namespace Main
         string imagePath = "";
         private static System.Timers.Timer timer;
 
-        string inputFilename = "input_image.txt";
-        string outputFilename = "output_barcode.txt";
+        string inputFileName = "input_image.txt";
+        string outputFileName = "output_barcode.txt";
+
+        Bitmap bitmapImage;
+        delegate void SetTextCallback(string text);
 
         private void button1_Click(object sender, EventArgs e)
         {
@@ -1175,7 +1197,7 @@ namespace Main
                 if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(fbd.SelectedPath))
                 {
                     imagePath = fbd.SelectedPath;
-                    File.WriteAllText(inputFilename, imagePath);
+                    File.WriteAllText(inputFileName, imagePath);
                     textBox1.Text = imagePath;
 
                     string path = getFileInDir(imagePath);
@@ -1224,7 +1246,7 @@ namespace Main
             return "";
         }
 
-        private void createTimer()
+        private void CreateTimer()
         {
             timer = new System.Timers.Timer();
             timer.Elapsed += new ElapsedEventHandler(OnTimedEvent);
@@ -1253,9 +1275,118 @@ namespace Main
 
         private void getBarCode(string path)
         {
-            string s = "";
-            s = ciNetProc.readQR(path, 1);
-            textBox2.Text = s;
+            string s = ciNetProc.readQR(path, 1);
+            //textBox2.Text = s;
+            File.WriteAllText(outputFileName, s);
+            SetText(s);
+
+            Bitmap barcodeBitmap;
+
+            using (var bmpTemp = new Bitmap(path))
+            {
+                //Bitmap bmp1 = ToGrayScale(bmpTemp);
+                barcodeBitmap = AdjustBrightness(bmpTemp, 1f);
+            }
+
+            int cnt = 0;
+            foreach (Barcode bc in ciNetProc.mBarcodes)
+            {
+                cnt++;
+                string txt = cnt.ToString();
+                DrawNumBarcode(barcodeBitmap, bc.Rectangle.Left, bc.Rectangle.Top, txt);
+            }
+
+            pictureBox2.Image = bitmapImage;
+
+            DeleteFile();
+        }
+
+        private void DeleteFile()
+        {
+            DirectoryInfo di = new DirectoryInfo(imagePath);
+            foreach (FileInfo file in di.GetFiles())
+            {
+                file.Delete();
+            }
+        }
+
+        private Bitmap ToGrayScale(Bitmap bmp)
+        {
+            return bmp;
+        }
+
+        private Bitmap AdjustBrightness(Image image, float brightness)
+        {
+            // Make the ColorMatrix.
+            float b = brightness;
+            ColorMatrix cm = new ColorMatrix(new float[][]
+                {
+            new float[] {b, 0, 0, 0, 0},
+            new float[] {0, b, 0, 0, 0},
+            new float[] {0, 0, b, 0, 0},
+            new float[] {0, 0, 0, 1, 0},
+            new float[] {0, 0, 0, 0, 1},
+                });
+            ImageAttributes attributes = new ImageAttributes();
+            attributes.SetColorMatrix(cm);
+
+            // Draw the image onto the new bitmap while applying
+            // the new ColorMatrix.
+            Point[] points = {
+                new Point(0, 0),
+                new Point(image.Width, 0),
+                new Point(0, image.Height),
+            };
+            Rectangle rect = new Rectangle(0, 0, image.Width, image.Height);
+
+            // Make the result bitmap.
+            Bitmap bm = new Bitmap(image.Width, image.Height);
+            using (Graphics gr = Graphics.FromImage(bm))
+            {
+                gr.DrawImage(image, points, rect,
+                    GraphicsUnit.Pixel, attributes);
+            }
+            Bitmap bmp = ToGrayScale(bm);
+
+            // Return the result.
+            return bmp;
+        }
+
+        private void SetText(string text)
+        {
+            // InvokeRequired required compares the thread ID of the
+            // calling thread to the thread ID of the creating thread.
+            // If these threads are different, it returns true.
+            if (this.textBox2.InvokeRequired)
+            {
+                SetTextCallback d = new SetTextCallback(SetText);
+                this.Invoke(d, new object[] { text });
+            }
+            else
+            {
+                this.textBox2.Text = text;
+            }
+        }
+
+        private void DrawNumBarcode(Bitmap bmp, float x, float y, string text)
+        {
+            Font font = new Font("Tahoma", 88);
+            Graphics drawing = Graphics.FromImage(bmp);
+
+            //create a brush for the text
+            Brush textBrush = new SolidBrush(Color.Red);
+
+            drawing.DrawString(text, font, textBrush, x, y);
+
+            //drawing.DrawString(DateTime.Now.ToString(), new Font("Tahoma", 48), new SolidBrush(Color.Blue), x - 150, y + 150);
+
+            drawing.Save();
+
+            textBrush.Dispose();
+            drawing.Dispose();
+
+            //pictureBox1.Image = bmp;
+            bitmapImage = bmp;
         }
     }
 }

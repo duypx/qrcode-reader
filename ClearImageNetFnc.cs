@@ -414,6 +414,47 @@ namespace Main
             }
         }
 
+        private Barcode[] sortBarcode(Barcode[] barcodes)
+        {
+            int min;
+            Barcode temp;
+            for (int i = 0; i < barcodes.Length - 1; i++)
+            {
+                min = i;
+                for (int j = i + 1; j < barcodes.Length; j++)
+                {
+                    if (barcodes[j].Rectangle.Top < barcodes[min].Rectangle.Top)
+                    {
+                        min = j;
+                    }
+
+                }
+                temp = barcodes[i];
+                barcodes[i] = barcodes[min];
+                barcodes[min] = temp;
+            }
+
+            for (int i = 0; i < barcodes.Length - 1; i++)
+            {
+                min = i;
+                for (int j = i + 1; j < barcodes.Length; j++)
+                {
+                    if (barcodes[j].Rectangle.Left < barcodes[min].Rectangle.Left && (int)(min / 5) == (int)(j / 5))
+                    {
+                        min = j;
+                    }
+
+                }
+                temp = barcodes[i];
+                barcodes[i] = barcodes[min];
+                barcodes[min] = temp;
+            }
+
+            return barcodes;
+        }
+
+        public Barcode[] mBarcodes;
+
         internal string readQR(string fileName, int page)
         {
             BarcodeReader reader = null;
@@ -426,8 +467,9 @@ namespace Main
                 //configure types
                 reader.QR = true;
                 Barcode[] barcodes = reader.Read(fileName, page);
+                mBarcodes = sortBarcode(barcodes);
                 string s = ""; int cnt = 0;
-                foreach (Barcode bc in barcodes)
+                foreach (Barcode bc in mBarcodes)
                 { cnt++; AddBarcode(ref s, cnt, bc); }
                 if (cnt == 0) { s = "NO BARCODES"; }
                 return s;
@@ -658,15 +700,38 @@ namespace Main
 
         private void AddBarcode(ref string s, long i, Barcode Bc)
         {
-            s = s + "Barcode#:" + i.ToString();
-            if (Bc.File != "") s += "  File:" + Bc.File;
-            s = s + " Page:" + Bc.Page.ToString() + Environment.NewLine;
-            s = s + " Type:" + System.Enum.GetName(Bc.Type.GetType(), Bc.Type);
-            s = s + " Lng:" + Bc.Length.ToString();
-            // s = s + Environment.NewLine + "   "; 
-            s = s + " Rect:" + Bc.Rectangle.Left.ToString() + ":" + Bc.Rectangle.Top.ToString() + "-" + Bc.Rectangle.Right.ToString() + ":" + Bc.Rectangle.Bottom.ToString();
-            s = s + " Rotation:" + System.Enum.GetName(Bc.Rotation.GetType(), Bc.Rotation);
-            // Try to decompress 2D Barcode data
+            //s = s + "Barcode#:" + i.ToString();
+            //if (Bc.File != "") s += "  File:" + Bc.File;
+            //s = s + " Page:" + Bc.Page.ToString() + Environment.NewLine;
+            //s = s + " Type:" + System.Enum.GetName(Bc.Type.GetType(), Bc.Type);
+            //s = s + " Lng:" + Bc.Length.ToString();
+            //// s = s + Environment.NewLine + "   "; 
+            //s = s + " Rect:" + Bc.Rectangle.Left.ToString() + ":" + Bc.Rectangle.Top.ToString() + "-" + Bc.Rectangle.Right.ToString() + ":" + Bc.Rectangle.Bottom.ToString();
+            //s = s + " Rotation:" + System.Enum.GetName(Bc.Rotation.GetType(), Bc.Rotation);
+            //// Try to decompress 2D Barcode data
+            //if (Bc.Type == BarcodeType.Pdf417 || Bc.Type == BarcodeType.DataMatrix || Bc.Type == BarcodeType.QR)
+            //{
+            //    string decomp = Bc.Decode(BarcodeDecoding.compA);
+            //    if (decomp != "")
+            //        s = s + Environment.NewLine + Environment.NewLine + "DECOMPRESSED BARCODE DATA (A):" + Environment.NewLine + decomp + Environment.NewLine;
+            //    decomp = Bc.Decode(BarcodeDecoding.compI);
+            //    if (decomp != "")
+            //        s = s + Environment.NewLine + Environment.NewLine + "DECOMPRESSED BARCODE DATA (I):" + Environment.NewLine + decomp + Environment.NewLine;
+            //}
+            //// Show raw  data
+            //s = s + Environment.NewLine + "RAW BARCODE DATA:" + Environment.NewLine + Bc.Text;
+            //s = s + Environment.NewLine + "--------------" + Environment.NewLine;
+
+            s = s + "Barcode: " + i.ToString() + Environment.NewLine;
+            s = s + "Date: " + DateTime.Now + Environment.NewLine;
+            //if (Bc.File != "") s += "  File:" + Bc.File;
+            //s = s + " Page:" + Bc.Page.ToString() + Environment.NewLine;
+            s = s + "Type: " + System.Enum.GetName(Bc.Type.GetType(), Bc.Type);
+            //s = s + " Lng:" + Bc.Length.ToString();
+            s = s + Environment.NewLine;
+            s = s + "Rect: " + Bc.Rectangle.Left.ToString() + ":" + Bc.Rectangle.Top.ToString() + "-" + Bc.Rectangle.Right.ToString() + ":" + Bc.Rectangle.Bottom.ToString() + Environment.NewLine;
+            s = s + "Rotation: " + System.Enum.GetName(Bc.Rotation.GetType(), Bc.Rotation);
+            //Try to decompress 2D Barcode data
             if (Bc.Type == BarcodeType.Pdf417 || Bc.Type == BarcodeType.DataMatrix || Bc.Type == BarcodeType.QR)
             {
                 string decomp = Bc.Decode(BarcodeDecoding.compA);
@@ -676,8 +741,9 @@ namespace Main
                 if (decomp != "")
                     s = s + Environment.NewLine + Environment.NewLine + "DECOMPRESSED BARCODE DATA (I):" + Environment.NewLine + decomp + Environment.NewLine;
             }
-            // Show raw  data
-            s = s + Environment.NewLine + "RAW BARCODE DATA:" + Environment.NewLine + Bc.Text;
+            //Show raw  data
+            s = s + Environment.NewLine + "RAW BARCODE DATA: " + Bc.Text;
+            //s = Bc.Text;
             s = s + Environment.NewLine + "--------------" + Environment.NewLine;
         }
 
