@@ -17,6 +17,7 @@ namespace Main
         private TextBox textBox1;
         private TextBox textBox2;
         private Label label5;
+        private Button button2;
         private System.ComponentModel.Container components = null;
 
         public Form1()
@@ -29,22 +30,6 @@ namespace Main
             //
             // TODO: Add any constructor code after InitializeComponent call
             //
-
-            //Read from a file
-            imagePath = File.ReadAllText(inputFileName);
-            textBox1.Text = imagePath;
-            if (imagePath != "")
-            {
-                string img = getFileInDir(imagePath);
-                if (img != "")
-                {
-                    getBarCode(img);
-                }
-            }
-
-            CreateTimer();
-            //getCameraDevice();
-            //InitICube();
         }
 
         protected override void Dispose(bool disposing)
@@ -72,6 +57,7 @@ namespace Main
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.textBox2 = new System.Windows.Forms.TextBox();
             this.label5 = new System.Windows.Forms.Label();
+            this.button2 = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
             // 
@@ -104,26 +90,37 @@ namespace Main
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(641, 30);
+            this.textBox2.Location = new System.Drawing.Point(641, 68);
             this.textBox2.Multiline = true;
             this.textBox2.Name = "textBox2";
             this.textBox2.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox2.Size = new System.Drawing.Size(184, 410);
+            this.textBox2.Size = new System.Drawing.Size(184, 372);
             this.textBox2.TabIndex = 63;
             // 
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(638, 14);
+            this.label5.Location = new System.Drawing.Point(638, 52);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(45, 13);
             this.label5.TabIndex = 64;
             this.label5.Text = "Results:";
             // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(641, 12);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.TabIndex = 65;
+            this.button2.Text = "Start";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
             // Form1
             // 
             this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
             this.ClientSize = new System.Drawing.Size(837, 451);
+            this.Controls.Add(this.button2);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.textBox2);
             this.Controls.Add(this.textBox1);
@@ -160,6 +157,22 @@ namespace Main
             //txtFileIn_.SelectionLength = 0;
             //DisplayImage(txtFileIn_.Text);
             //txtRslt.Text = AboutText();
+
+            CreateTimer();
+
+            if (File.Exists(inputFileName))
+            {
+                imagePath = File.ReadAllText(inputFileName);
+                textBox1.Text = imagePath;
+                if (imagePath != "")
+                {
+                    string img = getFileInDir(imagePath);
+                    if (img != "")
+                    {
+                        getBarCode(img);
+                    }
+                }
+            }
         }
 
         private void readWithZones_Click(object sender, System.EventArgs e)
@@ -403,8 +416,6 @@ namespace Main
             //}
         }
 
-
-
         private void readFromStream_Click(object sender, EventArgs e)
         {
             //try
@@ -641,7 +652,6 @@ namespace Main
             return true;
         }
 
-
         private void OpDone(string sRslt)
         {
             //if (sRslt.StartsWith("### "))
@@ -783,17 +793,27 @@ namespace Main
             timer.Enabled = true;
         }
 
+        private void PerformClickBtn()
+        {
+            try
+            {
+                if (button2.InvokeRequired)
+                {
+                    button2.Invoke(new Action(button2.PerformClick));
+                    return;
+                }
+            }
+                catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+
+            button2.PerformClick();
+        }
+
         private void OnTimedEvent(object source, ElapsedEventArgs e)
         {
-            string path = getFileInDir(imagePath);
-            if (path != "")
-            {
-                getBarCode(path);
-            }
-            else
-            {
-                clearView();
-            }
+            PerformClickBtn();
         }
 
         private void clearView()
@@ -915,6 +935,16 @@ namespace Main
 
             //pictureBox1.Image = bmp;
             bitmapImage = bmp;
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            string path = getFileInDir(imagePath);
+            if (path != "")
+            {
+                showImageFromPath(path);
+                getBarCode(path);
+            }
         }
     }
 }
